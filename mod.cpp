@@ -1,6 +1,5 @@
 #include "SA2ModLoader.h"
-#include "SA2Functions.h"
-#include "MemAccess.h"
+#include "IniFile.hpp"
 
 extern "C"
 {
@@ -10,9 +9,27 @@ extern "C"
 	void enemyFlash();
 	void IGRed1();
 	void IGRed2();
+	bool lostColonyFog = false;
+	bool ironGateFog = false;
+	bool ironGateTint = false;
 	__declspec(dllexport) ModInfo SA2ModInfo = { ModLoaderVer };
 	__declspec(dllexport) void _cdecl Init(const char* path, const HelperFunctions& helperFunctions)
 	{
+		const IniFile* config = new IniFile(std::string(path) + "\\config.ini");
+		lostColonyFog = config->getBool("Options", "LostColonyFog", false);
+		ironGateFog = config->getBool("Options", "IronGateFog", false);
+		ironGateTint = config->getBool("Options", "IronGateTint", false);
+
+		if (lostColonyFog) {
+			helperFunctions.ReplaceFile("resource\\gd_PC\\stg27_fog.bin", "resource\\gd_PC\\stg27_fog_DC.bin");
+			helperFunctions.ReplaceFile("resource\\gd_PC\\stg27_fogB.bin", "resource\\gd_PC\\stg27_fogB_DC.bin");
+		}
+
+		if (ironGateFog) {
+			helperFunctions.ReplaceFile("resource\\gd_PC\\stg11_fog.bin", "resource\\gd_PC\\stg11_fog_DC.bin");
+			helperFunctions.ReplaceFile("resource\\gd_PC\\stg11_fogB.bin", "resource\\gd_PC\\stg11_fogB_DC.bin");
+			
+		}
 	}
 
 	void floors() {
@@ -23,16 +40,38 @@ extern "C"
 	void IGRed1(){
 		FunctionPointer(void, sub_42A950, (int, float, float, float), 0x42A950);
 		sub_42A950(2, 0.5f, 0.05f, 0.15000001f);
+		if (LevelIDs_IronGate && ironGateFog) {
+			DataPointer(FogData, ironGateFogPtrB, 0x1A508B0);
+			FogDataPtr = &ironGateFogPtrB;
+		}
+
+		if (CurrentLevel == LevelIDs_IronGate && ironGateTint && ScreenFadeARGB.color == 0x00000000 &&
+			(GameState == GameStates_Ingame || GameState == GameStates_Pause)) ScreenFadeARGB.color = 0x40FF0000;
 	}
 
 	void IGRed2() {
 		FunctionPointer(void, sub_42A950, (int, float, float, float), 0x42A950);
 		sub_42A950(3, 0.5f, 0.15000001f, 0.05f);
+
+		if (CurrentLevel == LevelIDs_IronGate && ironGateFog) {
+			DataPointer(FogData, ironGateFogPtrB, 0x1A508B0);
+			FogDataPtr = &ironGateFogPtrB;
+		}
+		if (CurrentLevel == LevelIDs_IronGate && ironGateTint && ScreenFadeARGB.color == 0x00000000 &&
+			(GameState == GameStates_Ingame || GameState == GameStates_Pause)) ScreenFadeARGB.color = 0x40FF0000;
 	}
 
 	void IGflashlight() {
 		FunctionPointer(void, sub_42A950, (int, float, float, float), 0x42A950);
 		sub_42A950(1, 0.4f, 0.4f, 0.3f);
+
+		if (CurrentLevel == LevelIDs_IronGate && ironGateFog) {
+			DataPointer(FogData, ironGateFogPtr, 0x1A50620);
+			FogDataPtr = &ironGateFogPtr;
+			
+		}
+
+		if (CurrentLevel == LevelIDs_IronGate && ironGateTint && ScreenFadeARGB.color == 0x40FF0000) ScreenFadeARGB.color = 0x00000000;
 	}
 
 	void LCflashlight() {
